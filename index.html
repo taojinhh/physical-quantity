@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>기본량과 유도량 단위 카드 학습</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --base-color: #2563eb;
+    --derived-color: #d97706;
+    --prefix-color: #059669;
+  }
+  body {
+    font-family: "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", sans-serif;
+    background: linear-gradient(160deg, #eef2ff 0%, #fdf4ff 50%, #ecfeff 100%);
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+  .container { max-width: 1080px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 20px; }
+  header h1 { font-size: 1.7rem; color: #1e293b; margin-bottom: 6px; }
+  header p { color: #64748b; font-size: 0.95rem; }
+
+  .legend {
+    display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;
+    margin: 14px 0 4px; font-size: 0.85rem; color: #475569;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+
+  /* 탭 */
+  .tabs { display: flex; justify-content: center; gap: 8px; margin: 18px 0; flex-wrap: wrap; }
+  .tabs button {
+    border: 2px solid #cbd5e1; background: #fff; color: #475569;
+    padding: 8px 18px; border-radius: 999px; font-size: 0.95rem; font-weight: 700;
+    cursor: pointer; transition: all .15s; font-family: inherit;
+  }
+  .tabs button:hover { border-color: #94a3b8; }
+  .tabs button.active { background: #1e293b; border-color: #1e293b; color: #fff; }
+  .tabs button.quiz-tab.active { background: #7c3aed; border-color: #7c3aed; }
+
+  .progress {
+    text-align: center; margin-bottom: 16px; color: #475569; font-size: 0.9rem;
+  }
+  .progress b { color: #1e293b; }
+  .progress button {
+    margin-left: 10px; border: 1px solid #cbd5e1; background: #fff; color: #64748b;
+    padding: 3px 12px; border-radius: 999px; cursor: pointer; font-size: 0.8rem; font-family: inherit;
+  }
+  .progress button:hover { background: #f1f5f9; }
+
+  /* 카드 그리드 */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    perspective: 1100px;
+    height: 300px;
+    cursor: pointer;
+  }
+  .card-inner {
+    position: relative; width: 100%; height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.55s cubic-bezier(.4,.1,.2,1);
+  }
+  .card.flipped .card-inner { transform: rotateY(180deg); }
+  .card-face {
+    position: absolute; inset: 0;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    border-radius: 16px;
+    box-shadow: 0 4px 14px rgba(30,41,59,.12);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .card-front {
+    border: 3px solid rgba(0,0,0,.08);
+  }
+  .card-front .symbol {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 3.2rem; font-weight: 600; color: #1e293b;
+    line-height: 1.1; text-align: center; padding: 0 8px;
+  }
+  .card-front .symbol.small { font-size: 2.3rem; }
+  .card-front .hint {
+    position: absolute; bottom: 12px; font-size: 0.78rem; color: rgba(30,41,59,.5);
+  }
+  .card-front.dark-bg .symbol { color: #fff; }
+  .card-front.dark-bg .hint { color: rgba(255,255,255,.65); }
+
+  .card-back {
+    transform: rotateY(180deg);
+    background: #fff;
+    padding: 16px 16px 14px;
+    justify-content: flex-start;
+    text-align: center;
+    border-top: 6px solid var(--cat-color);
+  }
+  .card-back .badge {
+    font-size: 0.72rem; font-weight: 800; letter-spacing: .05em;
+    color: #fff; background: var(--cat-color);
+    padding: 3px 12px; border-radius: 999px; margin-bottom: 8px;
+  }
+  .card-back .qty-name { font-size: 1.25rem; font-weight: 800; color: #1e293b; }
+  .card-back .qty-unit {
+    font-family: Georgia, serif; font-size: 0.95rem; color: #64748b; margin: 2px 0 8px;
+  }
+  .card-back .desc {
+    font-size: 0.8rem; color: #475569; line-height: 1.45; word-break: keep-all;
+  }
+  .card-back .formula {
+    margin-top: 8px; background: #f8fafc; border: 1px solid #e2e8f0;
+    border-radius: 10px; padding: 7px 10px;
+    font-size: 0.8rem; color: #1e293b; line-height: 1.5; width: 100%;
+    word-break: keep-all;
+  }
+  .card-back .formula b { color: var(--cat-color); }
+  .card-back .from-chips { margin-top: 7px; display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; }
+  .card-back .from-chips span {
+    font-size: 0.7rem; background: #eff6ff; color: #1d4ed8;
+    border: 1px solid #bfdbfe; padding: 2px 9px; border-radius: 999px; font-weight: 700;
+  }
+
+  /* 퀴즈 */
+  .quiz-panel { display: none; max-width: 520px; margin: 0 auto; }
+  .quiz-panel.show { display: block; }
+  .quiz-card {
+    background: #fff; border-radius: 20px; box-shadow: 0 6px 20px rgba(30,41,59,.13);
+    padding: 30px 24px; text-align: center;
+  }
+  .quiz-card .q-label { font-size: 0.9rem; color: #64748b; margin-bottom: 14px; }
+  .quiz-card .q-symbol {
+    font-family: Georgia, serif; font-size: 3.6rem; font-weight: 600; color: #1e293b;
+    background: #f1f5f9; border-radius: 16px; padding: 26px 10px; margin-bottom: 20px;
+  }
+  .quiz-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .quiz-btns button {
+    flex: 1; min-width: 130px;
+    border: 2px solid #cbd5e1; background: #fff; border-radius: 12px;
+    padding: 13px 8px; font-size: 1rem; font-weight: 800; cursor: pointer;
+    font-family: inherit; color: #334155; transition: all .12s;
+  }
+  .quiz-btns button:hover:not(:disabled) { transform: translateY(-2px); }
+  .quiz-btns button[data-ans="기본량"]:hover:not(:disabled) { border-color: var(--base-color); color: var(--base-color); }
+  .quiz-btns button[data-ans="유도량"]:hover:not(:disabled) { border-color: var(--derived-color); color: var(--derived-color); }
+  .quiz-btns button[data-ans="접두어 단위"]:hover:not(:disabled) { border-color: var(--prefix-color); color: var(--prefix-color); }
+  .quiz-btns button:disabled { cursor: default; opacity: .55; }
+  .quiz-btns button.correct { border-color: #16a34a; background: #f0fdf4; color: #15803d; opacity: 1; }
+  .quiz-btns button.wrong { border-color: #dc2626; background: #fef2f2; color: #b91c1c; opacity: 1; }
+
+  .quiz-feedback {
+    margin-top: 18px; min-height: 30px; font-size: 1rem; font-weight: 800;
+  }
+  .quiz-feedback.ok { color: #16a34a; }
+  .quiz-feedback.no { color: #dc2626; }
+  .quiz-explain {
+    margin-top: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+    padding: 12px 14px; font-size: 0.87rem; color: #475569; line-height: 1.55;
+    text-align: left; word-break: keep-all; display: none;
+  }
+  .quiz-explain.show { display: block; }
+  .quiz-next {
+    margin-top: 16px; display: none;
+    background: #7c3aed; color: #fff; border: none; border-radius: 12px;
+    padding: 12px 34px; font-size: 1rem; font-weight: 800; cursor: pointer; font-family: inherit;
+  }
+  .quiz-next.show { display: inline-block; }
+  .quiz-next:hover { background: #6d28d9; }
+  .quiz-score { margin-top: 16px; color: #64748b; font-size: 0.9rem; }
+  .quiz-score b { color: #1e293b; }
+
+  .quiz-done {
+    background: #fff; border-radius: 20px; box-shadow: 0 6px 20px rgba(30,41,59,.13);
+    padding: 40px 24px; text-align: center; display: none;
+  }
+  .quiz-done.show { display: block; }
+  .quiz-done h2 { color: #1e293b; margin-bottom: 10px; }
+  .quiz-done p { color: #475569; margin-bottom: 20px; font-size: 1.05rem; }
+  .quiz-done button {
+    background: #7c3aed; color: #fff; border: none; border-radius: 12px;
+    padding: 12px 34px; font-size: 1rem; font-weight: 800; cursor: pointer; font-family: inherit;
+  }
+
+  footer { text-align: center; margin-top: 36px; color: #94a3b8; font-size: 0.8rem; }
+
+  @media (max-width: 480px) {
+    .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+    .card { height: 280px; }
+    .card-front .symbol { font-size: 2.4rem; }
+    .card-front .symbol.small { font-size: 1.7rem; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🔬 기본량과 유도량 단위 카드</h1>
+    <p>카드를 클릭해서 뒤집으면 단위에 대한 설명이 나타납니다.</p>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--base-color)"></i> 기본량 (7)</span>
+      <span><i class="dot" style="background:var(--derived-color)"></i> 유도량 (8)</span>
+      <span><i class="dot" style="background:var(--prefix-color)"></i> 접두어가 붙은 단위 (5)</span>
+    </div>
+  </header>
+
+  <div class="tabs" id="tabs">
+    <button data-filter="all" class="active">전체 보기</button>
+    <button data-filter="기본량">기본량</button>
+    <button data-filter="유도량">유도량</button>
+    <button data-filter="접두어 단위">접두어 단위</button>
+    <button data-filter="quiz" class="quiz-tab">📝 분류 퀴즈</button>
+  </div>
+
+  <div class="progress" id="progress"></div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="quiz-panel" id="quizPanel">
+    <div class="quiz-card" id="quizCard">
+      <div class="q-label" id="quizNum"></div>
+      <div class="q-symbol" id="quizSymbol"></div>
+      <div class="quiz-btns" id="quizBtns">
+        <button data-ans="기본량">기본량</button>
+        <button data-ans="유도량">유도량</button>
+        <button data-ans="접두어 단위">접두어 단위</button>
+      </div>
+      <div class="quiz-feedback" id="quizFeedback"></div>
+      <div class="quiz-explain" id="quizExplain"></div>
+      <button class="quiz-next" id="quizNext">다음 문제 →</button>
+      <div class="quiz-score" id="quizScore"></div>
+    </div>
+    <div class="quiz-done" id="quizDone">
+      <h2>🎉 퀴즈 완료!</h2>
+      <p id="quizDoneMsg"></p>
+      <button id="quizRestart">다시 도전하기</button>
+    </div>
+  </div>
+
+  <footer>통합과학 1단원 · 과학의 기초 — 기본량과 유도량 학습 카드</footer>
+</div>
+
+<script>
+// ===== 카드 데이터 =====
+// cat: 기본량 | 유도량 | 접두어 단위
+const CARDS = [
+  // --- 기본량 7가지 (국제단위계 SI) ---
+  { sym: "m", cat: "기본량", name: "길이", unitName: "미터 (meter)", bg: "#fdf3a8",
+    desc: "물체의 크기나 두 지점 사이의 거리를 나타내는 기본량이에요.",
+    extra: "빛이 진공에서 1/299,792,458초 동안 이동한 거리로 정의해요." },
+  { sym: "kg", cat: "기본량", name: "질량", unitName: "킬로그램 (kilogram)", bg: "#a8e6cf",
+    desc: "물체를 이루는 물질의 양을 나타내는 기본량이에요.",
+    extra: "시간이 지나도 변하지 않는 기본 상수인 플랑크 상수를 이용해 정의해요." },
+  { sym: "s", cat: "기본량", name: "시간", unitName: "초 (second)", bg: "#c3f34c",
+    desc: "사건이 일어난 순서나 지속된 정도를 나타내는 기본량이에요.",
+    extra: "세슘-133 원자가 내는 빛이 9,192,631,770번 진동하는 시간으로 정의해요." },
+  { sym: "A", cat: "기본량", name: "전류", unitName: "암페어 (ampere)", bg: "#9c9ade",
+    desc: "전하가 흐르는 정도를 나타내는 기본량이에요.",
+    extra: "기본 전하량(전자 1개의 전하)이라는 기본 상수를 이용해 정의해요." },
+  { sym: "K", cat: "기본량", name: "온도", unitName: "켈빈 (kelvin)", bg: "#b8ccf0",
+    desc: "물체의 차갑고 뜨거운 정도를 나타내는 기본량이에요.",
+    extra: "볼츠만 상수라는 기본 상수를 이용해 정의해요. 0 K = -273.15 ℃" },
+  { sym: "mol", cat: "기본량", name: "물질량", unitName: "몰 (mole)", bg: "#fcc39b",
+    desc: "입자(원자, 분자 등)의 개수를 묶어 나타내는 기본량이에요.",
+    extra: "1 mol = 입자 6.02214076 × 10²³개 (아보가드로 상수)" },
+  { sym: "cd", cat: "기본량", name: "광도", unitName: "칸델라 (candela)", bg: "#dcbdf0",
+    desc: "광원에서 나오는 빛의 밝기 정도를 나타내는 기본량이에요.",
+    extra: "촛불 1개의 밝기가 약 1 cd예요. (candela = 라틴어로 '양초')" },
+
+  // --- 유도량 8가지 ---
+  { sym: "m²", cat: "유도량", name: "넓이", unitName: "제곱미터", bg: "#e8c765",
+    desc: "면이 차지하는 공간의 크기를 나타내는 유도량이에요.",
+    formula: "넓이 = 가로 × 세로 → <b>m × m = m²</b>",
+    from: ["길이 m"] },
+  { sym: "m³", cat: "유도량", name: "부피", unitName: "세제곱미터", bg: "#d9d9d9",
+    desc: "입체가 차지하는 공간의 크기를 나타내는 유도량이에요.",
+    formula: "부피 = 가로 × 세로 × 높이 → <b>m × m × m = m³</b>",
+    from: ["길이 m"] },
+  { sym: "m/s", cat: "유도량", name: "속력", unitName: "미터 매 초", bg: "#faf6c8",
+    desc: "단위 시간 동안 이동한 거리, 즉 빠르기를 나타내는 유도량이에요.",
+    formula: "속력 = 이동 거리 ÷ 걸린 시간 → <b>m ÷ s = m/s</b>",
+    from: ["길이 m", "시간 s"] },
+  { sym: "m/s²", cat: "유도량", name: "가속도", unitName: "미터 매 초 제곱", bg: "#fadfd4",
+    desc: "단위 시간 동안 속력(속도)이 변하는 정도를 나타내는 유도량이에요.",
+    formula: "가속도 = 속도 변화량 ÷ 걸린 시간 → <b>(m/s) ÷ s = m/s²</b>",
+    from: ["길이 m", "시간 s"] },
+  { sym: "kg·m/s²", cat: "유도량", name: "힘", unitName: "뉴턴 (N)", bg: "#c8f0dc", smallSym: true,
+    desc: "물체의 모양이나 운동 상태를 변화시키는 원인을 나타내는 유도량이에요.",
+    formula: "힘 = 질량 × 가속도 → <b>kg × m/s² = kg·m/s²</b> (= 1 N)",
+    from: ["질량 kg", "길이 m", "시간 s"] },
+  { sym: "kg/m³", cat: "유도량", name: "밀도", unitName: "킬로그램 매 세제곱미터", bg: "#dde3f5", smallSym: true,
+    desc: "단위 부피당 질량, 즉 물질이 빽빽한 정도를 나타내는 유도량이에요.",
+    formula: "밀도 = 질량 ÷ 부피 → <b>kg ÷ m³ = kg/m³</b>",
+    from: ["질량 kg", "길이 m"] },
+  { sym: "kg/(m·s²)", cat: "유도량", name: "압력", unitName: "파스칼 (Pa)", bg: "#f0e3a3", smallSym: true,
+    desc: "단위 넓이에 수직으로 작용하는 힘의 크기를 나타내는 유도량이에요.",
+    formula: "압력 = 힘 ÷ 넓이 → <b>(kg·m/s²) ÷ m² = kg/(m·s²)</b> (= 1 Pa)",
+    from: ["질량 kg", "길이 m", "시간 s"] },
+  { sym: "mol/m³", cat: "유도량", name: "농도", unitName: "몰 매 세제곱미터", bg: "#efdcf5", smallSym: true,
+    desc: "단위 부피에 녹아 있는 물질의 양을 나타내는 유도량이에요.",
+    formula: "농도 = 물질량 ÷ 부피 → <b>mol ÷ m³ = mol/m³</b>",
+    from: ["물질량 mol", "길이 m"] },
+
+  // --- 접두어가 붙은 길이 단위 5가지 ---
+  { sym: "pm", cat: "접두어 단위", name: "피코미터", unitName: "picometer", bg: "#dde3f8",
+    desc: "기본량인 길이의 단위 m에 접두어 p(피코)를 붙인 아주 작은 길이 단위예요.",
+    formula: "<b>1 pm = 10⁻¹² m</b> (1조분의 1미터)",
+    extra: "원자의 크기(수소 원자 지름 약 100 pm)를 나타낼 때 사용해요." },
+  { sym: "nm", cat: "접두어 단위", name: "나노미터", unitName: "nanometer", bg: "#c5d3f2",
+    desc: "기본량인 길이의 단위 m에 접두어 n(나노)을 붙인 길이 단위예요.",
+    formula: "<b>1 nm = 10⁻⁹ m</b> (10억분의 1미터)",
+    extra: "바이러스, DNA 굵기(약 2 nm) 등을 나타낼 때 사용해요." },
+  { sym: "μm", cat: "접두어 단위", name: "마이크로미터", unitName: "micrometer", bg: "#a4b8e8",
+    desc: "기본량인 길이의 단위 m에 접두어 μ(마이크로)를 붙인 길이 단위예요.",
+    formula: "<b>1 μm = 10⁻⁶ m</b> (100만분의 1미터)",
+    extra: "세균이나 세포(약 10~100 μm)의 크기를 나타낼 때 사용해요." },
+  { sym: "mm", cat: "접두어 단위", name: "밀리미터", unitName: "millimeter", bg: "#3b5fc0", darkBg: true,
+    desc: "기본량인 길이의 단위 m에 접두어 m(밀리)를 붙인 길이 단위예요.",
+    formula: "<b>1 mm = 10⁻³ m</b> (1000분의 1미터)",
+    extra: "자로 잴 수 있는 작은 물체의 크기를 나타낼 때 사용해요." },
+  { sym: "km", cat: "접두어 단위", name: "킬로미터", unitName: "kilometer", bg: "#1e3272", darkBg: true,
+    desc: "기본량인 길이의 단위 m에 접두어 k(킬로)를 붙인 길이 단위예요.",
+    formula: "<b>1 km = 10³ m</b> (1000미터)",
+    extra: "도시 사이의 거리 등 큰 거리를 나타낼 때 사용해요." },
+];
+
+const CAT_COLOR = { "기본량": "var(--base-color)", "유도량": "var(--derived-color)", "접두어 단위": "var(--prefix-color)" };
+
+// ===== 카드 그리드 렌더링 =====
+const grid = document.getElementById("grid");
+const flipped = new Set();
+
+function renderGrid(filter) {
+  grid.innerHTML = "";
+  CARDS.forEach((c, idx) => {
+    if (filter !== "all" && c.cat !== filter) return;
+    const card = document.createElement("div");
+    card.className = "card" + (flipped.has(idx) ? " flipped" : "");
+    card.style.setProperty("--cat-color", CAT_COLOR[c.cat]);
+
+    const chips = (c.from || []).map(f => `<span>${f}</span>`).join("");
+    card.innerHTML = `
+      <div class="card-inner">
+        <div class="card-face card-front ${c.darkBg ? "dark-bg" : ""}" style="background:${c.bg}">
+          <div class="symbol ${c.smallSym ? "small" : ""}">${c.sym}</div>
+          <div class="hint">클릭해서 뒤집기</div>
+        </div>
+        <div class="card-face card-back">
+          <div class="badge">${c.cat}</div>
+          <div class="qty-name">${c.name}</div>
+          <div class="qty-unit">${c.sym} · ${c.unitName}</div>
+          <div class="desc">${c.desc}</div>
+          ${c.formula ? `<div class="formula">${c.formula}</div>` : ""}
+          ${chips ? `<div class="from-chips">${chips}</div>` : ""}
+          ${c.extra && !c.formula ? `<div class="formula">${c.extra}</div>` : ""}
+        </div>
+      </div>`;
+    card.addEventListener("click", () => {
+      card.classList.toggle("flipped");
+      if (card.classList.contains("flipped")) flipped.add(idx);
+      else flipped.delete(idx);
+      updateProgress();
+    });
+    grid.appendChild(card);
+  });
+  updateProgress();
+}
+
+function updateProgress() {
+  document.getElementById("progress").innerHTML =
+    `확인한 카드: <b>${flipped.size}</b> / ${CARDS.length}장` +
+    (flipped.size > 0 ? ` <button onclick="resetFlips()">모두 되돌리기</button>` : "");
+}
+function resetFlips() {
+  flipped.clear();
+  document.querySelectorAll(".card.flipped").forEach(c => c.classList.remove("flipped"));
+  updateProgress();
+}
+
+// ===== 탭 =====
+const quizPanel = document.getElementById("quizPanel");
+document.getElementById("tabs").addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  const f = btn.dataset.filter;
+  if (f === "quiz") {
+    grid.style.display = "none";
+    document.getElementById("progress").style.display = "none";
+    quizPanel.classList.add("show");
+    startQuiz();
+  } else {
+    grid.style.display = "";
+    document.getElementById("progress").style.display = "";
+    quizPanel.classList.remove("show");
+    renderGrid(f);
+  }
+});
+
+// ===== 퀴즈 =====
+let quizOrder = [], quizIdx = 0, quizScore = 0;
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function startQuiz() {
+  quizOrder = shuffle(CARDS.map((_, i) => i));
+  quizIdx = 0; quizScore = 0;
+  document.getElementById("quizDone").classList.remove("show");
+  document.getElementById("quizCard").style.display = "";
+  showQuestion();
+}
+
+function showQuestion() {
+  const c = CARDS[quizOrder[quizIdx]];
+  document.getElementById("quizNum").textContent = `문제 ${quizIdx + 1} / ${CARDS.length} — 이 단위는 무엇일까요?`;
+  document.getElementById("quizSymbol").textContent = c.sym;
+  document.getElementById("quizFeedback").textContent = "";
+  document.getElementById("quizFeedback").className = "quiz-feedback";
+  document.getElementById("quizExplain").className = "quiz-explain";
+  document.getElementById("quizNext").classList.remove("show");
+  document.querySelectorAll("#quizBtns button").forEach(b => {
+    b.disabled = false;
+    b.classList.remove("correct", "wrong");
+  });
+  updateQuizScore();
+}
+
+function updateQuizScore() {
+  document.getElementById("quizScore").innerHTML = `현재 점수: <b>${quizScore}</b>점`;
+}
+
+document.getElementById("quizBtns").addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn || btn.disabled) return;
+  const c = CARDS[quizOrder[quizIdx]];
+  const correct = btn.dataset.ans === c.cat;
+  document.querySelectorAll("#quizBtns button").forEach(b => {
+    b.disabled = true;
+    if (b.dataset.ans === c.cat) b.classList.add("correct");
+  });
+  const fb = document.getElementById("quizFeedback");
+  if (correct) {
+    quizScore++;
+    fb.textContent = "⭕ 정답이에요!";
+    fb.className = "quiz-feedback ok";
+  } else {
+    btn.classList.add("wrong");
+    fb.textContent = `❌ 아쉬워요! 정답은 '${c.cat}'입니다.`;
+    fb.className = "quiz-feedback no";
+  }
+  const ex = document.getElementById("quizExplain");
+  ex.innerHTML = `<b>${c.sym}</b> — ${c.name} (${c.cat})<br>${c.desc}` +
+    (c.formula ? `<br>${c.formula}` : "") + (c.extra ? `<br>${c.extra}` : "");
+  ex.classList.add("show");
+  document.getElementById("quizNext").classList.add("show");
+  updateQuizScore();
+});
+
+document.getElementById("quizNext").addEventListener("click", () => {
+  quizIdx++;
+  if (quizIdx >= CARDS.length) {
+    document.getElementById("quizCard").style.display = "none";
+    const done = document.getElementById("quizDone");
+    const pct = Math.round(quizScore / CARDS.length * 100);
+    let msg = pct === 100 ? "완벽해요! 기본량과 유도량 마스터! 🏆"
+            : pct >= 80 ? "훌륭해요! 거의 다 알고 있네요. 👏"
+            : pct >= 50 ? "잘했어요! 틀린 카드를 다시 뒤집어 보세요. 💪"
+            : "카드 학습을 한 번 더 하고 도전해 보세요! 📖";
+    document.getElementById("quizDoneMsg").innerHTML =
+      `${CARDS.length}문제 중 <b style="color:#7c3aed">${quizScore}문제</b> 정답 (${pct}점)<br>${msg}`;
+    done.classList.add("show");
+  } else {
+    showQuestion();
+  }
+});
+
+document.getElementById("quizRestart").addEventListener("click", startQuiz);
+
+// 초기 렌더링
+renderGrid("all");
+</script>
+</body>
+</html>
